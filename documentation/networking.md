@@ -1,32 +1,24 @@
 # Networking
 
-RONIN runs in the AWS London region (eu-west-2). The VPC uses 10.0.0.0/16 and spans two Availability Zones. Each zone has one public subnet for the load balancer and NAT gateway, and one private subnet for Fargate tasks.
+Memos runs in AWS London (eu-west-2). The VPC CIDR is 10.0.0.0/16. The ALB uses both public subnets. The app and setup tasks use the private subnets and have no public IP addresses.
 
 | Availability Zone | Public subnet | Private subnet |
 | --- | --- | --- |
 | eu-west-2a | 10.0.1.0/24 | 10.0.11.0/24 |
 | eu-west-2b | 10.0.2.0/24 | 10.0.12.0/24 |
 
-## DNS and incoming traffic
+## From the browser to Memos
 
-Cloudflare manages the parent domain and delegates ronin.humdaan.co.uk to Route 53 using NS records. In Route 53, ronin.humdaan.co.uk points to CloudFront and origin.ronin.humdaan.co.uk points to the Application Load Balancer.
+1. Cloudflare resolves memos.humdaan.co.uk through a DNS-only CNAME that points to the ALB. A separate CNAME validates the ACM certificate.
+2. The browser connects directly to the ALB. The port 80 listener redirects to HTTPS. The port 443 listener uses the ACM certificate in London.
+3. The ALB sends HTTP requests on port 5230 to the task IPs registered in its target group. The ECS security group accepts this port from the ALB security group.
 
-1. The browser connects to CloudFront. CloudFront redirects HTTP requests to HTTPS.
-2. CloudFront uses HTTPS on port 443 to reach the ALB. Caching is disabled for the main page and API requests. Files under /static/ have a separate caching rule.
-3. The ALB forwards requests to Fargate task IPs over HTTP on port 8080.
+The target group checks /healthz every 30 seconds and expects HTTP 200 within five seconds. It uses two successful checks to mark a target healthy and three failures to mark it unhealthy. The deployment script also checks /healthz through the public hostname.
 
-The ALB sits in both public subnets. The tasks run in the private subnets without public IP addresses. Their security group accepts traffic on port 8080 from the ALB security group.
+## Database and outbound traffic
 
-## Load balancer health checks
+The RDS subnet group includes both private subnets. The PostgreSQL instance is Single-AZ and privately accessible. Its security group accepts TCP 5432 from the ECS task security group, and the ECS group explicitly allows that outbound connection. The setup task uses the same network configuration as the app service.
 
-The target group checks /health on each task every 30 seconds and expects HTTP 200 within five seconds. The healthy threshold is two successful checks and the unhealthy threshold is three failed checks.
+Each private subnet routes internet-bound traffic through the NAT gateway in its own Availability Zone. ECS uses that HTTPS path for image pulls, CloudWatch log delivery and access to Secrets Manager. PostgreSQL traffic stays within the VPC. Two NAT gateways cost more than one, but each private subnet has its own outbound path.
 
-The load balancer checks each task directly. The application workflow also checks /health through the public hostname after a release, so it tests the route a visitor uses.
-
-## Outbound traffic
-
-The public subnets have a default route to the internet gateway. Each private subnet has a default route to the NAT gateway in the same Availability Zone. The tasks use this path to pull images from ECR, download the image layers and send logs to CloudWatch.
-
-I used one NAT gateway per zone so both private subnets have their own outbound path. That adds a second NAT gateway to the running cost, but avoids having both zones depend on the same gateway.
-
-[View the AWS architecture diagram](architecture/architecture-diagram-V4.png)
+[View the AWS architecture diagram](architecture/architecture-diagram-v5.png)

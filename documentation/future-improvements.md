@@ -1,11 +1,17 @@
 # Future improvements
 
-## 1. Add private endpoints for ECR and CloudWatch Logs
+## Test database recovery
 
-Fargate tasks currently use NAT for image pulls and log delivery. Add interface endpoints for the ECR API, the ECR Docker registry and CloudWatch Logs. Bring back the S3 gateway endpoint so tasks can download the image layers ECR stores in S3. This would give image pulls and log delivery a private path through the VPC.
+The deployment proved that notes and attachments survive replacement of the ECS tasks. I would also restore RDS from a backup and verify that Memos can read a known note and attachment from the restored instance. That would give me a measured recovery time and a procedure to follow if the database is lost.
 
-## 2. Add saved analyses and a weekly summary
+## Evaluate Multi-AZ PostgreSQL
 
-Add a Saved Analyses page. Store the analysis date, finding count and report key in DynamoDB so the app can query for recent runs. Store the full JSON report in S3 and fetch it when someone opens a saved analysis.
+The Fargate service runs across two Availability Zones, while PostgreSQL is Single-AZ. For a site that needed to stay available during a database outage, I would compare the extra cost of Multi-AZ with the recovery time observed in a failover test.
 
-Once there is saved history, use EventBridge Scheduler to invoke Lambda once a week. Lambda would read that week's records, calculate how many analyses ran and how many findings they produced, and write the totals to S3. The app could display those totals on the Saved Analyses page.
+## Compare VPC endpoints with NAT
+
+The private tasks currently use NAT for AWS API traffic. I would compare the cost of private endpoints for ECR, S3, CloudWatch Logs and Secrets Manager with the existing NAT gateways. ECR pulls also need access to the S3 bucket that serves the image layers, so the endpoint test would cover a full rollout from an empty task.
+
+## Compare database and object storage for attachments
+
+Attachments currently live in PostgreSQL. If uploads grew, I would test the S3-compatible storage option in Memos and measure the difference in database size and backup recovery time. That would also require a separate recovery plan for the attachment objects.

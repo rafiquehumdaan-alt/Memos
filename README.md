@@ -1,55 +1,45 @@
-# RONIN on Amazon ECS
+# Memos on Amazon ECS
 
-Welcome to RONIN. I built it to explore how a small Flask app goes from a Docker image to a running service on AWS. The project covers the infrastructure, how I release updates, and how I check that the right version is live.
+I deployed [Memos](https://github.com/usememos/memos), an open-source Markdown notes app, on Amazon ECS Fargate. The infrastructure and deployment pipeline are my work. The application image comes from the Memos maintainers.
+
+I wanted to see what happened to a note when ECS replaced the task that served it. I saved a private note with an image, redeployed the service and opened both again after the new tasks came up.
 
 ## The application
 
-RONIN reviews a sample AWS environment and flags things like unattached EBS volumes and EC2 instances with low utilisation. You can read each finding, see why it was flagged, and try the suggested action using demo data.
+Memos lets you write Markdown notes and attach files. The deployment is at [memos.humdaan.co.uk](https://memos.humdaan.co.uk) when the stack is running. The site uses sign-in and public registration is disabled.
 
-When the environment is running, you can try it at [ronin.humdaan.co.uk](https://ronin.humdaan.co.uk). The site may be offline when the AWS stack is torn down.
-
-![RONIN running over HTTPS](documentation/screenshots/ronin-live.png)
+![Memos running on ECS](documentation/screenshots/memos-live-success.png)
 
 ## How it fits together
 
-The app runs on Amazon ECS Fargate in the AWS London region. The tasks run in private subnets across two Availability Zones. Amazon ECR stores the Docker images, and CloudWatch Logs collects the container logs.
+Cloudflare resolves the hostname directly to an internet-facing Application Load Balancer in AWS London. The ALB terminates HTTPS and forwards requests to healthy Fargate tasks in private subnets across two Availability Zones. The tasks share a private RDS PostgreSQL database for notes and attachments, so either task can serve the data. PostgreSQL is Single-AZ. The app tier can tolerate losing a task, while the database remains a single point of failure.
 
-Cloudflare delegates the RONIN subdomain to Route 53. Visitors connect to CloudFront over HTTPS. CloudFront forwards app requests to an Application Load Balancer, which routes them to healthy Fargate tasks.
+[![Memos architecture on AWS](documentation/architecture/architecture-diagram-v5.png)](documentation/architecture/architecture-diagram-v5.png)
 
-I split Terraform into two parts. Bootstrap creates the S3 bucket for remote state and the AWS role used by GitHub Actions. The main configuration uses that backend and provisions the application infrastructure.
+[Editable draw.io diagram](documentation/architecture/architecture-diagram-V5.drawio)
 
-### AWS architecture
+## How a release goes live
 
-[![RONIN AWS architecture diagram](documentation/architecture/architecture-diagram-V4.png)](documentation/architecture/architecture-diagram-V4.png)
+- **Terraform Workflow** checks the configuration and handles manual plan, apply and destroy. Bootstrap sets up S3 remote state and the IAM role assumed by GitHub Actions through OIDC. The main apply provisions the stack and creates the ECS service at zero tasks.
+- **Application Workflow** builds and smoke-tests the pinned Memos image, scans it with Trivy and pushes the app and setup images to ECR. A temporary Fargate task prepares PostgreSQL, writes the app connection string to Secrets Manager and configures the Memos website admin. ECS then starts the app tasks. The pipeline checks the running image digest and the public /healthz endpoint.
 
-## Deploying changes
+![Successful Terraform apply](documentation/screenshots/terraform-apply-workflow-success.png)
 
-I use two GitHub Actions workflows so I can change the infrastructure and release the app independently. Both use GitHub OIDC to get temporary AWS credentials for deployment.
+![Successful ECS deployment](documentation/screenshots/application-workflow-success.png)
 
-### Terraform workflow
+## Run it yourself
 
-The Terraform workflow checks formatting, validates the configuration, and runs TFLint and Checkov. These checks run on relevant pushes and pull requests, and before a manual plan, apply or destroy. Checkov findings are advisory.
+With Docker running, run these commands in order from the repository root.
 
-Choose **plan** to preview changes. Choose **apply** or **destroy** to generate a saved plan and apply it in the same run.
+- **bash scripts/build-image.sh memos:local**
+- **bash scripts/check-container.sh memos:local**
 
-![Successful Terraform apply](documentation/screenshots/terraform-workflow-success-apply.png)
-
-See the [Terraform workflow](.github/workflows/terraform.yaml) and the [destroy run screenshot](documentation/screenshots/terraform-workflow-success-destruction.png).
-
-### Application workflow
-
-The application workflow builds the Docker image, starts a container to smoke-test the health endpoint, and scans the image with Trivy. On a manual deploy from **main**, it pushes that same image to ECR with a run-specific tag and the **latest** tag.
-
-The deploy script starts a new ECS rollout. Once the service stabilises, the script checks that the running tasks use the image digest from that workflow run and that the public health endpoint responds.
-
-![Successful application deployment](documentation/screenshots/application-workflow-success.png)
-
-See the [application workflow](.github/workflows/application.yaml).
+For AWS, configure your domain, Cloudflare settings and GitHub OIDC trust, apply bootstrap, then run **Terraform plan → apply → Application deploy**. The [deployment guide](documentation/cicd-overview.md) lists the repo-specific values to change and explains redeployment and teardown.
 
 ## Further documentation
 
-- [System design](documentation/system-design.md) explains what the app does, how it runs on Fargate, and how the service scales.
-- [Networking](documentation/networking.md) covers the VPC layout, DNS, and the path requests take from the browser to the app.
-- [Security](documentation/security-overview.md) covers network access, HTTPS, IAM roles, and Terraform state.
-- [CI/CD](documentation/cicd-overview.md) walks through both workflows, when they run, and how a release is verified.
-- [Future improvements](documentation/future-improvements.md) describes what I’d add in a future version.
+- [System design](documentation/system-design.md) covers shared storage, task replacement and scaling.
+- [Networking](documentation/networking.md) traces DNS, HTTPS and private database access.
+- [Security](documentation/security-overview.md) explains IAM, secret handling and the network controls.
+- [CI/CD and deployment](documentation/cicd-overview.md) walks through bootstrap, both workflows and teardown.
+- [Future improvements](documentation/future-improvements.md) covers changes I would make for a longer-running deployment.

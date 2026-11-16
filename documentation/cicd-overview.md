@@ -1,27 +1,39 @@
-# CI/CD overview
+# CI/CD and deployment
 
-RONIN uses two GitHub Actions workflows. The Terraform workflow manages the infrastructure, and the Application workflow builds and deploys the Flask container.
+The repository has two GitHub Actions workflows. Terraform changes the infrastructure. The Application workflow publishes the images, runs database setup and rolls out the ECS service.
 
 ## Terraform workflow
 
-Changes to the Terraform files or workflow trigger checks on pushes to `main` and pull requests targeting `main`. The checks job verifies formatting, initialises providers without connecting to the state backend, validates the main Terraform configuration, runs TFLint recursively and scans the configuration with Checkov.
+The [Terraform Workflow](../.github/workflows/terraform.yaml) runs formatting, validation, TFLint and Checkov on relevant pushes and pull requests, and before a manual run. Formatting, validation and TFLint failures stop the run. Checkov reports findings without blocking it.
 
-Manual runs also go through the checks job before running `plan`, `apply` or `destroy`. Formatting, validation and TFLint failures block the manual operation. Checkov findings are advisory.
-
-After the checks pass, the manual job assumes the AWS role through GitHub OIDC and initialises the S3 backend. `plan` prints the proposed changes. `apply` and `destroy` each create and apply a saved plan in the same run.
+Manual actions use GitHub OIDC and initialise the remote S3 backend. **plan** previews changes. **apply** and **destroy** each generate and apply a saved plan within their own run.
 
 ## Application workflow
 
-Pushes to `main`, pull requests targeting `main` and manual `scan-only` runs can run the checks job. It builds the Docker image, starts a container to check `/health` and scans the image with Trivy. Trivy reports high and critical findings without blocking deployment.
+The [Application Workflow](../.github/workflows/application.yaml) builds the pinned app image, starts a container to check /healthz and scans it with Trivy. The app checks run on relevant pushes and pull requests, and when you select **scan-only**. Select **deploy** on main to run the following steps.
 
-A manual `deploy` from `main` runs a separate job. It builds, smoke-tests and scans the image on the same runner that pushes it to ECR. The tested image is already available to Docker on that runner, so there is no artifact to transfer between jobs.
+1. Build, smoke-test and scan the app image, then authenticate to AWS using OIDC.
+2. Push the app image to the memos ECR repository under a run-specific tag and latest. Build and push the setup image to the same repository under setup-latest.
+3. Start the one-off database setup task in the private subnets and wait for exit code 0. It prepares PostgreSQL, writes the app and website credentials to Secrets Manager, and applies the Memos configuration. A failed setup stops the release.
+4. Force a new ECS deployment. On the first deploy, start two tasks. Once stable, verify that the running tasks use the expected image digest and that the public /healthz endpoint responds. After the first successful rollout, set the autoscaling minimum to two.
 
-The deploy job uses GitHub OIDC to assume the AWS role and logs in to ECR. The workflow calls `push-image-to-ecr.sh` to push the tested image with a run-specific tag and `latest`. It then calls `deploy-ecs.sh` to start a new ECS rollout, wait for the service to stabilise, verify that the running tasks use the image digest from this run and check the public `/health` endpoint. On the first successful deployment, the script sets the autoscaling minimum to two tasks.
+Manual Terraform runs and application deploys share a concurrency group. For an app redeploy, run **Application → deploy** again. The setup task reuses existing credentials, and the replacement tasks connect to the same PostgreSQL database.
 
-Manual Terraform runs and application deployments share a concurrency group so they do not run against the environment at the same time.
+## Deploy a copy in your AWS account
 
-## Deployment order
+1. Set your domain and DNS records in terraform/dns.tf. Update the public health URL in scripts/deploy-ecs.sh and set your account's role ARN in both workflows. Set your S3 bucket name and backend settings in terraform/bootstrap/main.tf and terraform/backend.tf. Check that bootstrap policy resources match the ECR, secret and state names. The stack defaults to London.
+2. Configure a Cloudflare API token scoped to DNS for your zone. In GitHub Actions, set CLOUDFLARE_API_TOKEN as a secret and CLOUDFLARE_ZONE_ID as a variable.
+3. Ensure your AWS account already has the GitHub OIDC provider. Use your repository's actual OIDC subject for main as the bootstrap input. Run the following using AWS credentials that can create the state bucket and deployment role. Terraform prompts for the subject on apply.
 
-1. Apply `terraform/bootstrap` locally to create the S3 state bucket and the GitHub OIDC role.
-2. Run the Terraform workflow with `apply` to create the main infrastructure.
-3. Run the Application workflow from `main` with `deploy` to push the image and start the ECS service.
+   - **terraform -chdir=terraform/bootstrap init**
+   - **terraform -chdir=terraform/bootstrap apply**
+
+4. From main, run **Terraform → plan**, review it, then run **Terraform → apply**. After apply succeeds, run **Application → deploy**. Sign in using the website admin secret and create a private note with an attachment. Redeploy and confirm both are still available.
+
+## Teardown
+
+Run **Terraform → destroy** to remove the application stack. It deletes the RDS instance and its data without taking a final snapshot. The Cloudflare token must still be valid to remove the DNS records.
+
+The bootstrap bucket and IAM role are managed separately. Keep them if you intend to deploy again. Destroying bootstrap also removes the remote state bucket and its versions, so do that only after the application stack has been torn down.
+
+[Successful destroy run](screenshots/terraform-destroy-workflow-success.png)

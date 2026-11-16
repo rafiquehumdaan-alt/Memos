@@ -1,33 +1,33 @@
 # Security overview
 
-## Network access
+## Network boundaries and encryption
 
-The public entry point is CloudFront. The internet-facing ALB accepts IPv4 traffic on ports 80 and 443, so its origin hostname can also be reached directly. The ALB redirects HTTP requests to HTTPS.
+The internet-facing ALB accepts HTTP and HTTPS. It redirects HTTP to HTTPS and terminates TLS using the London ACM certificate. Traffic from the ALB to the private Fargate tasks uses HTTP on port 5230, restricted by security groups. The tasks have no public IP addresses. Their security group allows outbound TCP 443 and PostgreSQL traffic to the RDS security group on TCP 5432.
 
-The Fargate tasks have no public IP addresses. Their security group only accepts inbound traffic on port 8080 from the ALB security group. Outbound traffic is allowed on port 443 through NAT. This gives the tasks access to ECR and CloudWatch Logs, and the rule permits other IPv4 destinations on that port too.
+RDS is private and its storage is encrypted. The setup script verifies the database server's identity against the RDS CA when it tests the PostgreSQL logins. The connection string used by the Memos app requires TLS with sslmode=require.
 
-## HTTPS
+## IAM roles
 
-CloudFront uses an ACM certificate in us-east-1 for ronin.humdaan.co.uk. The ALB uses a separate ACM certificate in eu-west-2 for origin.ronin.humdaan.co.uk. Both certificates are validated through DNS in Route 53.
+| Role | Responsibility |
+| --- | --- |
+| GitHub Actions deployment role | Both workflows assume this role through OIDC. AWS checks the STS audience and the repo’s main branch subject before issuing temporary credentials. |
+| ECS task execution role | Lets ECS pull images, deliver logs and retrieve the app database secret for injection as MEMOS_DSN. |
+| Setup task role | Lets the setup container read the RDS-managed admin secret and read or write the two Memos secrets. |
 
-The browser connects to CloudFront over HTTPS, and CloudFront uses a separate HTTPS connection to the ALB. The ALB forwards requests to the private tasks over HTTP on port 8080.
+## Credentials and accounts
 
-## AWS access
+| Secret | Purpose |
+| --- | --- |
+| RDS-managed master secret | PostgreSQL administrator credentials used by the setup task. |
+| memos/database | PostgreSQL connection string for the dedicated memos_app login. |
+| memos/website-admin | Password for the admin account on the Memos website. |
 
-GitHub Actions uses OIDC to obtain temporary AWS credentials. The role's trust policy checks that the token is intended for AWS STS and that it comes from the configured RONIN repository and main branch.
+Terraform manages the secret resources and passes ARNs to ECS. The setup task writes the app and website credentials at runtime. Public sign-up is disabled. The Cloudflare API token is stored as a GitHub Actions secret, and the zone ID is a GitHub Actions variable.
 
-The Terraform and application workflows share this role. Its permissions cover both infrastructure changes and application deployments. The Fargate tasks use a separate execution role so ECS can pull the container image and send logs to CloudWatch. The Flask app uses local demo data and has no application task role.
+## Terraform state and scans
 
-## Terraform state
+The main stack uses a private, versioned S3 bucket with SSE-S3 encryption, blocked public access and an S3 lock file. Bootstrap uses local Terraform state. Keep both state files and saved plans out of Git.
 
-Bootstrap creates a private S3 bucket for the main Terraform state. Public access is blocked, encryption at rest uses SSE-S3, and versioning keeps previous copies of the state. Terraform uses an S3 lock file to prevent simultaneous operations from updating the same state.
+The workflow smoke-tests the app image before scanning it with Trivy. ECR scans on push, and the Terraform workflow runs Checkov. Trivy and Checkov findings are advisory in GitHub Actions.
 
-Bootstrap keeps its own state locally. The main stack uses the S3 backend.
-
-## Container and workflow checks
-
-The Dockerfile installs Python dependencies in a build stage and copies the virtual environment into the runtime image. Gunicorn runs as a non-root user inside the container.
-
-The application workflow checks that the container starts and responds on /health, then scans the image with Trivy. ECR also scans images on push. The Terraform workflow checks formatting, validates the configuration, runs TFLint and scans with Checkov. Trivy and Checkov findings are advisory in the GitHub workflows.
-
-[Read the CI/CD overview](cicd-overview.md)
+[Read the deployment guide](cicd-overview.md).
