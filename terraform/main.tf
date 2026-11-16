@@ -15,7 +15,7 @@ terraform {
 }
 
 resource "aws_ecr_repository" "ronin" {
-  name                 = "ronin"
+  name                 = "test-memos"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -27,30 +27,6 @@ resource "aws_ecr_repository" "ronin" {
     Name    = "ronin"
     Project = "RONIN"
   }
-}
-
-resource "aws_route53_zone" "ronin" {
-  name = "ronin.humdaan.co.uk"
-
-  tags = {
-    Name    = "ronin.humdaan.co.uk"
-    Project = "RONIN"
-  }
-}
-
-resource "cloudflare_dns_record" "ronin_delegation" {
-  for_each = {
-    ns1 = aws_route53_zone.ronin.name_servers[0]
-    ns2 = aws_route53_zone.ronin.name_servers[1]
-    ns3 = aws_route53_zone.ronin.name_servers[2]
-    ns4 = aws_route53_zone.ronin.name_servers[3]
-  }
-
-  zone_id = var.cloudflare_zone_id
-  name    = "ronin"
-  type    = "NS"
-  content = each.value
-  ttl     = 3600
 }
 
 module "vpc" {
@@ -68,22 +44,10 @@ module "vpc" {
 }
 
 module "iam" {
-  source = "./modules/iam"
-}
-
-module "acm" {
-  source = "./modules/acm"
-
-  providers = {
-    aws           = aws
-    aws.us_east_1 = aws.us_east_1
-  }
-
-  domain_name        = "ronin.humdaan.co.uk"
-  origin_domain_name = "origin.ronin.humdaan.co.uk"
-  route53_zone_id    = aws_route53_zone.ronin.zone_id
-
-  depends_on = [cloudflare_dns_record.ronin_delegation]
+  source             = "./modules/iam"
+  app_secret_arn     = module.database.app_secret_arn
+  admin_secret_arn   = module.database.admin_secret_arn
+  website_secret_arn = module.ecs.website_secret_arn
 }
 
 module "alb" {
@@ -92,38 +56,33 @@ module "alb" {
   vpc_id            = module.vpc.vpc_id
   vpc_cidr          = module.vpc.vpc_cidr
   public_subnet_ids = module.vpc.public_subnet_ids
-  certificate_arn   = module.acm.origin_certificate_arn
-}
-
-module "cloudfront" {
-  source = "./modules/cloudfront"
-
-  domain_name            = "ronin.humdaan.co.uk"
-  origin_domain_name     = "origin.ronin.humdaan.co.uk"
-  viewer_certificate_arn = module.acm.viewer_certificate_arn
-}
-
-module "route53" {
-  source = "./modules/route53"
-
-  zone_id                = aws_route53_zone.ronin.zone_id
-  domain_name            = "ronin.humdaan.co.uk"
-  origin_domain_name     = "origin.ronin.humdaan.co.uk"
-  alb_dns_name           = module.alb.alb_dns_name
-  alb_zone_id            = module.alb.alb_zone_id
-  cloudfront_domain_name = module.cloudfront.domain_name
-  cloudfront_zone_id     = module.cloudfront.hosted_zone_id
+  certificate_arn   = aws_acm_certificate_validation.memos.certificate_arn
 }
 
 module "ecs" {
   source = "./modules/ecs"
 
-  vpc_id                = module.vpc.vpc_id
-  private_subnet_ids    = module.vpc.private_subnet_ids
-  alb_security_group_id = module.alb.security_group_id
-  target_group_arn      = module.alb.target_group_arn
+  vpc_id                     = module.vpc.vpc_id
+  private_subnet_ids         = module.vpc.private_subnet_ids
+  alb_security_group_id      = module.alb.security_group_id
+  target_group_arn           = module.alb.target_group_arn
+  database_security_group_id = module.database.security_group_id
+  app_secret_arn             = module.database.app_secret_arn
+  setup_task_role_arn        = module.iam.setup_task_role_arn
+  database_address           = module.database.address
+  admin_secret_arn           = module.database.admin_secret_arn
 
   ecr_repository_url = aws_ecr_repository.ronin.repository_url
 
   ecs_execution_role_arn = module.iam.ecs_execution_role_arn
+}
+
+module "database" {
+  source = "./modules/database"
+
+  ecs_security_group_id = module.ecs.task_security_group_id
+
+  name               = "test-memos"
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
 }

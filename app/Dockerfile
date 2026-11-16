@@ -1,21 +1,5 @@
-FROM python:3.12-slim AS builder
+FROM neosmemo/memos:26.11.0@sha256:087e7dc6b76b31fcd1107a5767398b2a310ced209adb791efd8760c745dc8034
 
-WORKDIR /build
-COPY requirements.txt .
-RUN python -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+ENV MEMOS_PORT=5230
 
-FROM python:3.12-slim AS runtime
-
-ENV PATH="/opt/venv/bin:$PATH" \
-    PORT=8080
-WORKDIR /app
-RUN useradd --system --create-home ronin
-
-COPY --from=builder /opt/venv /opt/venv
-COPY --chown=ronin:ronin app/ ./app/
-COPY --chown=ronin:ronin run.py .
-
-USER ronin
-EXPOSE 8080
-CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:8080", "run:app"]
+EXPOSE 5230

@@ -6,7 +6,7 @@ RETRY_DELAY="${2:?Retry delay is required}"
 
 for attempt in {1..12}; do
   if RESPONSE=$(curl --fail --silent --show-error --max-time 10 "$HEALTH_URL") &&
-    jq -e '.status == "ok"' <<< "$RESPONSE" >/dev/null; then
+        [[ "$RESPONSE" == "Service ready." ]]; then
     echo "Health check passed for $HEALTH_URL."
     exit 0
   fi
@@ -20,5 +20,3 @@ done
 
 echo "Timed out waiting for $HEALTH_URL." >&2
 exit 1
-
-	# Check the live app's /health endpoint and retry if needed.

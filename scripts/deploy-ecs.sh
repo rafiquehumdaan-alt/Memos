@@ -2,15 +2,15 @@
 set -euo pipefail
 
 image_tag="${1:?Image tag is required}"
-cluster=ronin-cluster
-service=ronin-service
+cluster=test-memos-cluster
+service=test-memos-service
 scaling_target=(
   --service-namespace ecs
   --scalable-dimension ecs:service:DesiredCount
 )
 
 expected_digest=$(aws ecr describe-images \
-  --repository-name ronin \
+  --repository-name test-memos \
   --image-ids "imageTag=$image_tag" \
   --query 'imageDetails[0].imageDigest' --output text)
 
@@ -47,7 +47,7 @@ if ! jq -e --arg digest "$expected_digest" --argjson count "${#tasks[@]}" '
   (.failures | length) == 0 and
   (.tasks | length) == $count and
   all(.tasks[]; .lastStatus == "RUNNING" and
-    any(.containers[]; .name == "ronin" and .imageDigest == $digest))
+    any(.containers[]; .name == "test-memos" and .imageDigest == $digest))
 ' <<< "$details" >/dev/null; then
   echo "Expected every running RONIN task to use $expected_digest." >&2
   jq '.tasks[] | {taskArn, lastStatus, containers: [.containers[] | {name, imageDigest}]}' \
@@ -55,7 +55,7 @@ if ! jq -e --arg digest "$expected_digest" --argjson count "${#tasks[@]}" '
   exit 1
 fi
 
-bash scripts/verify-app-health.sh https://ronin.humdaan.co.uk/health 15
+bash scripts/verify-app-health.sh https://test-memos.humdaan.co.uk/healthz 15
 
 if [[ "$minimum" == 0 ]]; then
   aws application-autoscaling register-scalable-target \

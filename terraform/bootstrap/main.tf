@@ -10,11 +10,11 @@ terraform {
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket        = "ronin-terraform-state-435059220418"
+  bucket        = "test-memos-terraform-state-435059220418"
   force_destroy = true
 
   tags = {
-    Name    = "ronin-terraform-state"
+    Name    = "test-memos-terraform-state"
     Project = "RONIN"
   }
 }
@@ -48,17 +48,8 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
 
 data "aws_caller_identity" "current" {}
 
-resource "aws_iam_openid_connect_provider" "github" {
+data "aws_iam_openid_connect_provider" "github" {
   url = var.github_oidc_provider_url
-
-  client_id_list = [
-    "sts.amazonaws.com"
-  ]
-
-  tags = {
-    Name    = "github-actions"
-    Project = "RONIN"
-  }
 }
 
 data "aws_iam_policy_document" "github_actions_trust" {
@@ -68,7 +59,7 @@ data "aws_iam_policy_document" "github_actions_trust" {
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
     }
 
     condition {
@@ -119,7 +110,7 @@ data "aws_iam_policy_document" "github_actions_permissions" {
   statement {
     sid       = "ECR"
     actions   = ["ecr:*"]
-    resources = ["arn:aws:ecr:eu-west-2:${data.aws_caller_identity.current.account_id}:repository/ronin"]
+    resources = ["arn:aws:ecr:eu-west-2:${data.aws_caller_identity.current.account_id}:repository/test-memos"]
   }
 
   statement {
@@ -162,6 +153,59 @@ data "aws_iam_policy_document" "github_actions_permissions" {
   }
 
   statement {
+    sid       = "Database"
+    actions   = ["rds:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "RdsServiceRole"
+    actions   = ["iam:CreateServiceLinkedRole"]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:AWSServiceName"
+      values   = ["rds.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid = "RdsManagedSecret"
+    actions = [
+      "secretsmanager:CreateSecret",
+      "secretsmanager:TagResource"
+    ]
+    resources = ["arn:aws:secretsmanager:eu-west-2:${data.aws_caller_identity.current.account_id}:secret:rds!db-*"]
+  }
+
+  statement {
+    sid       = "DescribeSecretsManagerKey"
+    actions   = ["kms:DescribeKey"]
+    resources = ["arn:aws:kms:eu-west-2:${data.aws_caller_identity.current.account_id}:key/*"]
+
+    condition {
+      test     = "ForAnyValue:StringEquals"
+      variable = "kms:ResourceAliases"
+      values   = ["alias/aws/secretsmanager"]
+    }
+  }
+
+  statement {
+    sid = "MemosSecretMetadata"
+    actions = [
+      "secretsmanager:CreateSecret",
+      "secretsmanager:DeleteSecret",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:GetResourcePolicy",
+      "secretsmanager:TagResource",
+      "secretsmanager:UntagResource",
+      "secretsmanager:UpdateSecret"
+    ]
+    resources = ["arn:aws:secretsmanager:eu-west-2:${data.aws_caller_identity.current.account_id}:secret:test-memos/*"]
+  }
+
+  statement {
     sid       = "Logging"
     actions   = ["logs:*"]
     resources = ["*"]
@@ -191,12 +235,12 @@ data "aws_iam_policy_document" "github_actions_permissions" {
 }
 
 resource "aws_iam_policy" "github_actions" {
-  name        = "ronin-github-actions-policy"
+  name        = "test-memos-github-actions-policy"
   description = "Permissions used by RONIN GitHub Actions workflows"
   policy      = data.aws_iam_policy_document.github_actions_permissions.json
 
   tags = {
-    Name    = "ronin-github-actions-policy"
+    Name    = "test-memos-github-actions-policy"
     Project = "RONIN"
   }
 }

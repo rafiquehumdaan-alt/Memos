@@ -27,3 +27,23 @@ variable "target_group_arn" {
   description = "ARN of the ALB target group"
   type        = string
 }
+
+variable "database_security_group_id" {
+  type = string
+}
+
+variable "app_secret_arn" {
+  type = string
+}
+
+variable "setup_task_role_arn" {
+  type = string
+}
+
+variable "database_address" {
+  type = string
+}
+
+variable "admin_secret_arn" {
+  type = string
+}

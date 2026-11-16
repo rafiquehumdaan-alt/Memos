@@ -1,4 +1,0 @@
-# Runtime dependencies required to run the RONIN application in production.
-
-Flask==3.1.2
-gunicorn==23.0.0

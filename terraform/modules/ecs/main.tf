@@ -1,18 +1,18 @@
 resource "aws_ecs_cluster" "main" {
-  name = "ronin-cluster"
+  name = "test-memos-cluster"
 
   tags = {
-    Name = "ronin-cluster"
+    Name = "test-memos-cluster"
   }
 }
 
 resource "aws_security_group" "ecs" {
-  name        = "ronin-ecs-sg"
+  name        = "test-memos-ecs-sg"
   description = "Security group for RONIN ECS tasks"
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = "ronin-ecs-sg"
+    Name = "test-memos-ecs-sg"
   }
 }
 
@@ -20,14 +20,11 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   security_group_id            = aws_security_group.ecs.id
   referenced_security_group_id = var.alb_security_group_id
 
-  from_port   = 8080
-  to_port     = 8080
+  from_port   = 5230
+  to_port     = 5230
   ip_protocol = "tcp"
 }
 
-# ECR and CloudWatch Logs require public HTTPS access through NAT.
-# Accepted risk: any IPv4 destination remains reachable on TCP port 443.
-# trivy:ignore:AWS-0104
 resource "aws_vpc_security_group_egress_rule" "ecs_all" {
   security_group_id = aws_security_group.ecs.id
   cidr_ipv4         = "0.0.0.0/0"
@@ -37,12 +34,12 @@ resource "aws_vpc_security_group_egress_rule" "ecs_all" {
 }
 
 resource "aws_cloudwatch_log_group" "ecs" {
-  name              = "/ecs/ronin-task"
+  name              = "/ecs/test-memos-task"
   retention_in_days = 7
 }
 
 resource "aws_ecs_task_definition" "app" {
-  family                   = "ronin-task"
+  family                   = "test-memos-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
@@ -53,13 +50,27 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([
     {
-      name      = "ronin"
+      name      = "test-memos"
       image     = "${var.ecr_repository_url}:latest"
       essential = true
 
+      environment = [
+        {
+          name  = "MEMOS_DRIVER"
+          value = "postgres"
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "MEMOS_DSN"
+          valueFrom = var.app_secret_arn
+        }
+      ]
+
       portMappings = [
         {
-          containerPort = 8080
+          containerPort = 5230
           protocol      = "tcp"
         }
       ]
@@ -70,7 +81,7 @@ resource "aws_ecs_task_definition" "app" {
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
           "awslogs-region"        = "eu-west-2"
-          "awslogs-stream-prefix" = "ronin"
+          "awslogs-stream-prefix" = "test-memos"
         }
       }
     }
@@ -78,7 +89,7 @@ resource "aws_ecs_task_definition" "app" {
 }
 
 resource "aws_ecs_service" "app" {
-  name                          = "ronin-service"
+  name                          = "test-memos-service"
   cluster                       = aws_ecs_cluster.main.id
   task_definition               = aws_ecs_task_definition.app.arn
   desired_count                 = 0
@@ -93,8 +104,8 @@ resource "aws_ecs_service" "app" {
 
   load_balancer {
     target_group_arn = var.target_group_arn
-    container_name   = "ronin"
-    container_port   = 8080
+    container_name   = "test-memos"
+    container_port   = 5230
   }
 
   lifecycle {
@@ -115,7 +126,7 @@ resource "aws_appautoscaling_target" "ecs" {
 }
 
 resource "aws_appautoscaling_policy" "ecs_cpu" {
-  name               = "ronin-cpu-autoscaling"
+  name               = "test-memos-cpu-autoscaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
@@ -131,4 +142,63 @@ resource "aws_appautoscaling_policy" "ecs_cpu" {
     scale_in_cooldown  = 300
     scale_out_cooldown = 60
   }
+}
+
+resource "aws_vpc_security_group_egress_rule" "ecs_to_database" {
+  security_group_id            = aws_security_group.ecs.id
+  referenced_security_group_id = var.database_security_group_id
+  from_port                    = 5432
+  to_port                      = 5432
+  ip_protocol                  = "tcp"
+}
+
+resource "aws_secretsmanager_secret" "website_admin" {
+  name = "test-memos/website-admin"
+}
+
+resource "aws_ecs_task_definition" "setup" {
+  family                   = "test-memos-setup"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "256"
+  memory                   = "512"
+
+  execution_role_arn = var.ecs_execution_role_arn
+  task_role_arn      = var.setup_task_role_arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "setup"
+      image     = "${var.ecr_repository_url}:setup-latest"
+      essential = true
+
+      environment = [
+        {
+          name  = "DB_HOST"
+          value = var.database_address
+        },
+        {
+          name  = "ADMIN_SECRET"
+          value = var.admin_secret_arn
+        },
+        {
+          name  = "APP_SECRET"
+          value = var.app_secret_arn
+        },
+        {
+          name  = "WEBSITE_SECRET"
+          value = aws_secretsmanager_secret.website_admin.arn
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
+          "awslogs-region"        = "eu-west-2"
+          "awslogs-stream-prefix" = "setup"
+        }
+      }
+    }
+  ])
 }

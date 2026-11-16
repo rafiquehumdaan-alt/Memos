@@ -1,10 +1,10 @@
 resource "aws_security_group" "alb" {
-  name        = "ronin-alb-sg"
-  description = "Security group for the RONIN Application Load Balancer"
+  name        = "test-memos-alb-sg"
+  description = "Security group for the Memos Application Load Balancer"
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = "ronin-alb-sg"
+    Name = "test-memos-alb-sg"
   }
 }
 
@@ -27,35 +27,35 @@ resource "aws_vpc_security_group_ingress_rule" "https" {
 resource "aws_vpc_security_group_egress_rule" "all" {
   security_group_id = aws_security_group.alb.id
   cidr_ipv4         = var.vpc_cidr
-  from_port         = 8080
-  to_port           = 8080
+  from_port         = 5230
+  to_port           = 5230
   ip_protocol       = "tcp"
 }
 
-# Allows application requests and health checks within the VPC on TCP 8080.
+# Allows application requests and health checks within the VPC on TCP 5230.
 
 resource "aws_lb" "main" {
-  name               = "ronin-alb"
+  name               = "test-memos-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
 
   tags = {
-    Name = "ronin-alb"
+    Name = "test-memos-alb"
   }
 }
 
 resource "aws_lb_target_group" "ecs" {
-  name        = "ronin-tg-8080"
-  port        = 8080
+  name        = "test-memos-tg-5230"
+  port        = 5230
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
 
   health_check {
     enabled             = true
-    path                = "/health"
+    path                = "/healthz"
     protocol            = "HTTP"
     port                = "traffic-port"
     healthy_threshold   = 2
@@ -66,7 +66,7 @@ resource "aws_lb_target_group" "ecs" {
   }
 
   tags = {
-    Name = "ronin-tg-8080"
+    Name = "test-memos-tg-5230"
   }
 }
 
