@@ -1,10 +1,10 @@
 output "vpc_cidr" {
-  description = "Address range of the RONIN VPC"
+  description = "Address range of the Memos VPC"
   value       = aws_vpc.main.cidr_block
 }
 
 output "vpc_id" {
-  description = "ID of the RONIN VPC"
+  description = "ID of the Memos VPC"
   value       = aws_vpc.main.id
 }
 

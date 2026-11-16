@@ -1,5 +1,5 @@
 variable "vpc_cidr" {
-  description = "CIDR block for the RONIN VPC"
+  description = "CIDR block for the Memos VPC"
   type        = string
 }
 

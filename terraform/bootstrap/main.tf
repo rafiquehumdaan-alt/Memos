@@ -10,12 +10,12 @@ terraform {
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket        = "test-memos-terraform-state-435059220418"
+  bucket        = "memos-terraform-state-435059220418"
   force_destroy = true
 
   tags = {
-    Name    = "test-memos-terraform-state"
-    Project = "RONIN"
+    Name    = "memos-terraform-state"
+    Project = "Memos"
   }
 }
 
@@ -82,7 +82,7 @@ resource "aws_iam_role" "github_actions" {
 
   tags = {
     Name    = var.github_actions_role_name
-    Project = "RONIN"
+    Project = "Memos"
   }
 }
 
@@ -110,7 +110,7 @@ data "aws_iam_policy_document" "github_actions_permissions" {
   statement {
     sid       = "ECR"
     actions   = ["ecr:*"]
-    resources = ["arn:aws:ecr:eu-west-2:${data.aws_caller_identity.current.account_id}:repository/test-memos"]
+    resources = ["arn:aws:ecr:eu-west-2:${data.aws_caller_identity.current.account_id}:repository/memos"]
   }
 
   statement {
@@ -202,7 +202,7 @@ data "aws_iam_policy_document" "github_actions_permissions" {
       "secretsmanager:UntagResource",
       "secretsmanager:UpdateSecret"
     ]
-    resources = ["arn:aws:secretsmanager:eu-west-2:${data.aws_caller_identity.current.account_id}:secret:test-memos/*"]
+    resources = ["arn:aws:secretsmanager:eu-west-2:${data.aws_caller_identity.current.account_id}:secret:memos/*"]
   }
 
   statement {
@@ -212,7 +212,7 @@ data "aws_iam_policy_document" "github_actions_permissions" {
   }
 
   statement {
-    sid = "IAMForRonin"
+    sid = "IAMForMemos"
     actions = [
       "iam:GetRole",
       "iam:CreateRole",
@@ -235,13 +235,13 @@ data "aws_iam_policy_document" "github_actions_permissions" {
 }
 
 resource "aws_iam_policy" "github_actions" {
-  name        = "test-memos-github-actions-policy"
-  description = "Permissions used by RONIN GitHub Actions workflows"
+  name        = "memos-github-actions-policy"
+  description = "Permissions used by Memos GitHub Actions workflows"
   policy      = data.aws_iam_policy_document.github_actions_permissions.json
 
   tags = {
-    Name    = "test-memos-github-actions-policy"
-    Project = "RONIN"
+    Name    = "memos-github-actions-policy"
+    Project = "Memos"
   }
 }
 

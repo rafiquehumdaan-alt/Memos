@@ -1,5 +1,5 @@
 resource "aws_iam_role" "ecs_execution" {
-  name = "test-memos-ecs-execution-role"
+  name = "memos-ecs-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -16,7 +16,7 @@ resource "aws_iam_role" "ecs_execution" {
   })
 
   tags = {
-    Name = "test-memos-ecs-execution-role"
+    Name = "memos-ecs-execution-role"
   }
 }
 
@@ -40,7 +40,7 @@ resource "aws_iam_role_policy" "memos_database_secret" {
 }
 
 resource "aws_iam_role" "memos_setup" {
-  name               = "test-memos-setup"
+  name               = "memos-setup"
   assume_role_policy = aws_iam_role.ecs_execution.assume_role_policy
 }
 

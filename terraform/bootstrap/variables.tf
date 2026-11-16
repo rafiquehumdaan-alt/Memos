@@ -4,9 +4,9 @@ variable "github_repository_subject" {
 }
 
 variable "github_actions_role_name" {
-  description = "Name of the IAM role assumed by RONIN GitHub Actions workflows"
+  description = "Name of the IAM role assumed by Memos GitHub Actions workflows"
   type        = string
-  default     = "test-memos-github-actions"
+  default     = "memos-github-actions"
 }
 
 variable "github_oidc_provider_url" {

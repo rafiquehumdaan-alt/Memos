@@ -14,8 +14,8 @@ terraform {
   }
 }
 
-resource "aws_ecr_repository" "ronin" {
-  name                 = "test-memos"
+resource "aws_ecr_repository" "memos" {
+  name                 = "memos"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 
@@ -24,8 +24,8 @@ resource "aws_ecr_repository" "ronin" {
   }
 
   tags = {
-    Name    = "ronin"
-    Project = "RONIN"
+    Name    = "memos"
+    Project = "Memos"
   }
 }
 
@@ -72,7 +72,7 @@ module "ecs" {
   database_address           = module.database.address
   admin_secret_arn           = module.database.admin_secret_arn
 
-  ecr_repository_url = aws_ecr_repository.ronin.repository_url
+  ecr_repository_url = aws_ecr_repository.memos.repository_url
 
   ecs_execution_role_arn = module.iam.ecs_execution_role_arn
 }
@@ -82,7 +82,7 @@ module "database" {
 
   ecs_security_group_id = module.ecs.task_security_group_id
 
-  name               = "test-memos"
+  name               = "memos"
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
 }

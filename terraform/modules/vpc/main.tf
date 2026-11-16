@@ -4,7 +4,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "test-memos-vpc"
+    Name = "memos-vpc"
   }
 }
 
@@ -15,7 +15,7 @@ resource "aws_subnet" "public_a" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "test-memos-public-a"
+    Name = "memos-public-a"
   }
 }
 
@@ -26,7 +26,7 @@ resource "aws_subnet" "public_b" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "test-memos-public-b"
+    Name = "memos-public-b"
   }
 }
 
@@ -36,7 +36,7 @@ resource "aws_subnet" "private_a" {
   availability_zone = var.availability_zone_a
 
   tags = {
-    Name = "test-memos-private-app-a"
+    Name = "memos-private-app-a"
   }
 }
 
@@ -46,7 +46,7 @@ resource "aws_subnet" "private_b" {
   availability_zone = var.availability_zone_b
 
   tags = {
-    Name = "test-memos-private-app-b"
+    Name = "memos-private-app-b"
   }
 }
 
@@ -54,7 +54,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "test-memos-igw"
+    Name = "memos-igw"
   }
 }
 
@@ -62,7 +62,7 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "test-memos-public-rt"
+    Name = "memos-public-rt"
   }
 }
 
@@ -86,7 +86,7 @@ resource "aws_eip" "nat_a" {
   domain = "vpc"
 
   tags = {
-    Name = "test-memos-nat-eip-a"
+    Name = "memos-nat-eip-a"
   }
 }
 
@@ -94,7 +94,7 @@ resource "aws_eip" "nat_b" {
   domain = "vpc"
 
   tags = {
-    Name = "test-memos-nat-eip-b"
+    Name = "memos-nat-eip-b"
   }
 }
 
@@ -105,7 +105,7 @@ resource "aws_nat_gateway" "nat_a" {
   depends_on = [aws_internet_gateway.main]
 
   tags = {
-    Name = "test-memos-nat-a"
+    Name = "memos-nat-a"
   }
 }
 
@@ -116,7 +116,7 @@ resource "aws_nat_gateway" "nat_b" {
   depends_on = [aws_internet_gateway.main]
 
   tags = {
-    Name = "test-memos-nat-b"
+    Name = "memos-nat-b"
   }
 }
 
@@ -124,7 +124,7 @@ resource "aws_route_table" "private_a" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "test-memos-private-rt-a"
+    Name = "memos-private-rt-a"
   }
 }
 
@@ -132,7 +132,7 @@ resource "aws_route_table" "private_b" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "test-memos-private-rt-b"
+    Name = "memos-private-rt-b"
   }
 }
 

@@ -1,18 +1,18 @@
 resource "aws_ecs_cluster" "main" {
-  name = "test-memos-cluster"
+  name = "memos-cluster"
 
   tags = {
-    Name = "test-memos-cluster"
+    Name = "memos-cluster"
   }
 }
 
 resource "aws_security_group" "ecs" {
-  name        = "test-memos-ecs-sg"
-  description = "Security group for RONIN ECS tasks"
+  name        = "memos-ecs-sg"
+  description = "Security group for Memos ECS tasks"
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = "test-memos-ecs-sg"
+    Name = "memos-ecs-sg"
   }
 }
 
@@ -34,12 +34,12 @@ resource "aws_vpc_security_group_egress_rule" "ecs_all" {
 }
 
 resource "aws_cloudwatch_log_group" "ecs" {
-  name              = "/ecs/test-memos-task"
+  name              = "/ecs/memos-task"
   retention_in_days = 7
 }
 
 resource "aws_ecs_task_definition" "app" {
-  family                   = "test-memos-task"
+  family                   = "memos-task"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
@@ -50,7 +50,7 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([
     {
-      name      = "test-memos"
+      name      = "memos"
       image     = "${var.ecr_repository_url}:latest"
       essential = true
 
@@ -81,7 +81,7 @@ resource "aws_ecs_task_definition" "app" {
         options = {
           "awslogs-group"         = aws_cloudwatch_log_group.ecs.name
           "awslogs-region"        = "eu-west-2"
-          "awslogs-stream-prefix" = "test-memos"
+          "awslogs-stream-prefix" = "memos"
         }
       }
     }
@@ -89,7 +89,7 @@ resource "aws_ecs_task_definition" "app" {
 }
 
 resource "aws_ecs_service" "app" {
-  name                          = "test-memos-service"
+  name                          = "memos-service"
   cluster                       = aws_ecs_cluster.main.id
   task_definition               = aws_ecs_task_definition.app.arn
   desired_count                 = 0
@@ -104,7 +104,7 @@ resource "aws_ecs_service" "app" {
 
   load_balancer {
     target_group_arn = var.target_group_arn
-    container_name   = "test-memos"
+    container_name   = "memos"
     container_port   = 5230
   }
 
@@ -126,7 +126,7 @@ resource "aws_appautoscaling_target" "ecs" {
 }
 
 resource "aws_appautoscaling_policy" "ecs_cpu" {
-  name               = "test-memos-cpu-autoscaling"
+  name               = "memos-cpu-autoscaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
@@ -153,11 +153,11 @@ resource "aws_vpc_security_group_egress_rule" "ecs_to_database" {
 }
 
 resource "aws_secretsmanager_secret" "website_admin" {
-  name = "test-memos/website-admin"
+  name = "memos/website-admin"
 }
 
 resource "aws_ecs_task_definition" "setup" {
-  family                   = "test-memos-setup"
+  family                   = "memos-setup"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = "256"

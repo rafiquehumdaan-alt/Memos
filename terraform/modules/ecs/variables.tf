@@ -1,15 +1,15 @@
 variable "vpc_id" {
-  description = "ID of the RONIN VPC"
+  description = "ID of the Memos VPC"
   type        = string
 }
 
 variable "alb_security_group_id" {
-  description = "Security group ID of the RONIN ALB"
+  description = "Security group ID of the Memos ALB"
   type        = string
 }
 
 variable "ecr_repository_url" {
-  description = "URL of the RONIN ECR repository"
+  description = "URL of the Memos ECR repository"
   type        = string
 }
 
@@ -19,7 +19,7 @@ variable "ecs_execution_role_arn" {
 }
 
 variable "private_subnet_ids" {
-  description = "IDs of the private subnets for the RONIN ECS tasks"
+  description = "IDs of the private subnets for the Memos ECS tasks"
   type        = list(string)
 }
 

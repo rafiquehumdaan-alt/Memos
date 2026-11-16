@@ -32,11 +32,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: test-memos-${{ (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') && 'deployment' || github.run_id }}
+  group: memos-${{ (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy') && 'deployment' || github.run_id }}
   cancel-in-progress: false
 
 env:
-  LOCAL_IMAGE: test-memos:${{ github.sha }}
+  LOCAL_IMAGE: memos:${{ github.sha }}
 
 jobs:
   checks:
@@ -88,7 +88,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
-          role-to-assume: arn:aws:iam::435059220418:role/test-memos-github-actions
+          role-to-assume: arn:aws:iam::435059220418:role/memos-github-actions
           aws-region: eu-west-2
 
       - name: Log in to Amazon ECR
@@ -97,12 +97,12 @@ jobs:
 
       - name: Push image to ECR
         env:
-          REPOSITORY: ${{ steps.ecr.outputs.registry }}/test-memos
+          REPOSITORY: ${{ steps.ecr.outputs.registry }}/memos
           IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: bash scripts/push-image-to-ecr.sh "$LOCAL_IMAGE" "$REPOSITORY" "$IMAGE_TAG"
 
       - name: Run ECS database setup task
-        run: bash scripts/setup-database.sh test-memos-cluster test-memos-service test-memos-setup
+        run: bash scripts/setup-database.sh memos-cluster memos-service memos-setup
 
       - name: Roll out to ECS
         env:

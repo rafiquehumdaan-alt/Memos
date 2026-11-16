@@ -1,5 +1,5 @@
 resource "aws_acm_certificate" "memos" {
-  domain_name       = "test-memos.humdaan.co.uk"
+  domain_name       = "memos.humdaan.co.uk"
   validation_method = "DNS"
 }
 
@@ -19,7 +19,7 @@ resource "aws_acm_certificate_validation" "memos" {
 
 resource "cloudflare_dns_record" "memos" {
   zone_id = var.cloudflare_zone_id
-  name    = "test-memos.humdaan.co.uk"
+  name    = "memos.humdaan.co.uk"
   type    = "CNAME"
   content = module.alb.alb_dns_name
   ttl     = 60

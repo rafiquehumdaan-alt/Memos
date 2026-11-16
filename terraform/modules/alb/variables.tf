@@ -4,7 +4,7 @@ variable "vpc_cidr" {
 }
 
 variable "vpc_id" {
-  description = "ID of the RONIN VPC"
+  description = "ID of the Memos VPC"
   type        = string
 }
 

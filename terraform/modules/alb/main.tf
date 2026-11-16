@@ -1,10 +1,10 @@
 resource "aws_security_group" "alb" {
-  name        = "test-memos-alb-sg"
+  name        = "memos-alb-sg"
   description = "Security group for the Memos Application Load Balancer"
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = "test-memos-alb-sg"
+    Name = "memos-alb-sg"
   }
 }
 
@@ -35,19 +35,19 @@ resource "aws_vpc_security_group_egress_rule" "all" {
 # Allows application requests and health checks within the VPC on TCP 5230.
 
 resource "aws_lb" "main" {
-  name               = "test-memos-alb"
+  name               = "memos-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
 
   tags = {
-    Name = "test-memos-alb"
+    Name = "memos-alb"
   }
 }
 
 resource "aws_lb_target_group" "ecs" {
-  name        = "test-memos-tg-5230"
+  name        = "memos-tg-5230"
   port        = 5230
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -66,7 +66,7 @@ resource "aws_lb_target_group" "ecs" {
   }
 
   tags = {
-    Name = "test-memos-tg-5230"
+    Name = "memos-tg-5230"
   }
 }
 

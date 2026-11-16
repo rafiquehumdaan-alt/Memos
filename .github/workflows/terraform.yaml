@@ -29,7 +29,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: test-memos-${{ github.event_name == 'workflow_dispatch' && 'deployment' || github.run_id }}
+  group: memos-${{ github.event_name == 'workflow_dispatch' && 'deployment' || github.run_id }}
   cancel-in-progress: false
 
 env:
@@ -102,7 +102,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
         with:
-          role-to-assume: arn:aws:iam::435059220418:role/test-memos-github-actions
+          role-to-assume: arn:aws:iam::435059220418:role/memos-github-actions
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Initialise Main backend
@@ -126,4 +126,4 @@ jobs:
 
       - name: Report infrastructure readiness
         if: inputs.action == 'apply'
-        run: echo "RONIN infrastructure is ready. Run the Application Workflow with deploy to release the app."
+        run: echo "Memos infrastructure is ready. Run the Application Workflow with deploy to release the app."
