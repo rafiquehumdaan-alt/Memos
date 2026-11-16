@@ -1,8 +1,10 @@
-# Memos on Amazon ECS
+# Memos on AWS ECS Fargate
 
-I deployed [Memos](https://github.com/usememos/memos), an open-source Markdown notes app, on Amazon ECS Fargate. The infrastructure and deployment pipeline are my work. The application image comes from the Memos maintainers.
+Memos is an open-source Markdown notes app. In the developers’ own words:
 
-I wanted to see what happened to a note when ECS replaced the task that served it. I saved a private note with an image, redeployed the service and opened both again after the new tasks came up.
+"Memos is an open-source, self-hosted note-taking app that brings your everyday thoughts together in a personal timeline. Your data stays yours, and you choose what to keep private or share."
+
+I used Memos to show how I’d host a web app reliably on AWS. I deployed it on ECS Fargate across two Availability Zones, with an Application Load Balancer routing requests to healthy tasks and a private PostgreSQL database storing notes and attachments.
 
 ## The application
 
