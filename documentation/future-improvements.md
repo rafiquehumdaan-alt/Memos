@@ -1,17 +1,17 @@
 # Future improvements
 
-## Test database recovery
+## Split the deployment role
 
-The deployment proved that notes and attachments survive replacement of the ECS tasks. I would also restore RDS from a backup and verify that Memos can read a known note and attachment from the restored instance. That would give me a measured recovery time and a procedure to follow if the database is lost.
+Both workflows currently assume the same GitHub Actions role. The Terraform workflow needs wide permissions to build the stack, but the application workflow only needs to push images, run the setup task, update the service and register autoscaling. I would create a separate narrower role for the application workflow with its own OIDC trust, so a problem in the deploy workflow cannot create or change infrastructure. Each workflow would then point role-to-assume at its own role.
 
-## Evaluate Multi-AZ PostgreSQL
+## Automate dependency updates
 
-The Fargate service runs across two Availability Zones, while PostgreSQL is Single-AZ. For a site that needed to stay available during a database outage, I would compare the extra cost of Multi-AZ with the recovery time observed in a failover test.
+The app and setup images are pinned by digest and the GitHub Actions are pinned by commit SHA. That is safe, but the pins go stale. I would add Dependabot for the github-actions, docker and terraform ecosystems so updates arrive as pull requests that run the existing checks before anything is deployed. The Python packages for the setup image are installed inline in its Dockerfile, so I would move them into a requirements file first so Dependabot can see them.
 
-## Compare VPC endpoints with NAT
+## Rotate the stored secrets
 
-The private tasks currently use NAT for AWS API traffic. I would compare the cost of private endpoints for ECR, S3, CloudWatch Logs and Secrets Manager with the existing NAT gateways. ECR pulls also need access to the S3 bucket that serves the image layers, so the endpoint test would cover a full rollout from an empty task.
+The RDS master password is managed by RDS and rotates automatically. The memos_app database password and the website admin password are generated once by the setup task and never change. I would add Secrets Manager rotation for the database login. ECS injects secrets when a task starts, so running tasks would keep the old value until they are replaced, and the rotation would need to be followed by a redeploy. I would rotate the website admin password on a longer schedule.
 
-## Compare database and object storage for attachments
+## Make the security scans blocking
 
-Attachments currently live in PostgreSQL. If uploads grew, I would test the S3-compatible storage option in Memos and measure the difference in database size and backup recovery time. That would also require a separate recovery plan for the attachment objects.
+Trivy and Checkov report findings but never fail the pipeline. I would review the current results, fix what is fixable and record the accepted findings with a reason, then switch Trivy to fail on critical and high findings with a fix available and remove soft_fail from Checkov. The upstream Memos image is pinned, so some findings may not be fixable until a new release, and those would go in an ignore file with a note rather than block every build.

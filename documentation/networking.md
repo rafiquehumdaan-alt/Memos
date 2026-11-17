@@ -17,7 +17,7 @@ The target group checks /healthz every 30 seconds and expects HTTP 200 within fi
 
 ## Database and outbound traffic
 
-The RDS subnet group includes both private subnets. The PostgreSQL instance is Single-AZ and privately accessible. Its security group accepts TCP 5432 from the ECS task security group, and the ECS group explicitly allows that outbound connection. The setup task uses the same network configuration as the app service.
+The RDS subnet group includes both private subnets. The PostgreSQL instance is Multi-AZ and privately accessible, with the primary in one private subnet and the standby in the other. Its security group accepts TCP 5432 from the ECS task security group, and the ECS group explicitly allows that outbound connection. The setup task uses the same network configuration as the app service.
 
 Each private subnet routes internet-bound traffic through the NAT gateway in its own Availability Zone. ECS uses that HTTPS path for image pulls, CloudWatch log delivery and access to Secrets Manager. PostgreSQL traffic stays within the VPC. Two NAT gateways cost more than one, but each private subnet has its own outbound path.
 

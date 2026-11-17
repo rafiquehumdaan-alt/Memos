@@ -14,7 +14,7 @@ Memos lets you write Markdown notes and attach files. The deployment is at [memo
 
 ## How it fits together
 
-Cloudflare resolves the hostname directly to an internet-facing Application Load Balancer in AWS London. The ALB terminates HTTPS and forwards requests to healthy Fargate tasks in private subnets across two Availability Zones. The tasks share a private RDS PostgreSQL database for notes and attachments, so either task can serve the data. PostgreSQL is Single-AZ. The app tier can tolerate losing a task, while the database remains a single point of failure.
+Cloudflare resolves the hostname directly to an internet-facing Application Load Balancer in AWS London. The ALB terminates HTTPS and forwards requests to healthy Fargate tasks in private subnets across two Availability Zones. The tasks share a private RDS PostgreSQL database for notes and attachments, so either task can serve the data. PostgreSQL runs Multi-AZ, with a standby copy in the second Availability Zone that RDS promotes automatically if the primary fails. Both the app tier and the database can tolerate losing a zone.
 
 [![Memos architecture on AWS](documentation/architecture/architecture-diagram-v5.png)](documentation/architecture/architecture-diagram-v5.png)
 

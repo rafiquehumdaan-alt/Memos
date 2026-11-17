@@ -6,7 +6,7 @@
 
 A single local Memos container can use SQLite. On ECS, the service runs tasks across two Availability Zones. Both need access to the same notes and attachments, so I store the data in private RDS PostgreSQL. When ECS replaces a task, its replacement connects to the same database.
 
-The RDS instance is encrypted, uses PostgreSQL 16 and retains automated backups for one day. I chose Single-AZ for this deployment to limit cost. A database outage can still affect the whole app even when both Fargate tasks are running.
+The RDS instance is encrypted, uses PostgreSQL 16 and retains automated backups for seven days. It runs Multi-AZ, so RDS keeps a standby copy in the other Availability Zone and fails over to it automatically if the primary or its zone fails. The standby roughly doubles the database cost while the stack is running.
 
 ## How the first deployment works
 

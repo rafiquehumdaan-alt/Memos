@@ -17,9 +17,9 @@ resource "aws_db_instance" "memos" {
   allocated_storage           = 20
   storage_type                = "gp3"
   storage_encrypted           = true
-  multi_az                    = false
+  multi_az                    = true
   publicly_accessible         = false
-  backup_retention_period     = 1
+  backup_retention_period     = 7
   username                    = "memos_admin"
   manage_master_user_password = true
   db_subnet_group_name        = aws_db_subnet_group.memos.name
