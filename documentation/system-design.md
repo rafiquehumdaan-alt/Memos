@@ -10,7 +10,7 @@ The RDS instance is encrypted, uses PostgreSQL 16 and retains automated backups 
 
 ## How the first deployment works
 
-Terraform creates the ECS service at zero tasks so the infrastructure can be brought up before ECR has an image or the app has a database login. The Application workflow publishes the images, then starts a one-off Fargate task in the same private network as the app.
+Terraform creates the ECS service at zero tasks so the infrastructure can be brought up before ECR has an image or the app has a database login. The Application workflow publishes the images, then starts a one-off Fargate task in the same private network as the app. The task definitions that Terraform creates use a placeholder image. Each release registers new revisions that name the exact image digests, so the service always runs a specific image.
 
 The setup task creates the memos database and its memos_app PostgreSQL login if needed. It stores the connection string in Secrets Manager and applies the Memos configuration for the website admin, disabled public registration and database-backed attachments. The web containers start with MEMOS_CONFIG_APPLY=off because the setup task applies that configuration before the rollout.
 

@@ -13,11 +13,11 @@ Manual actions use GitHub OIDC and initialise the remote S3 backend. **plan** pr
 The [Application Workflow](../.github/workflows/application.yaml) builds the pinned app image, starts a container to check /healthz and scans it with Trivy. The app checks run on relevant pushes and pull requests, and when you select **scan-only**. Select **deploy** on main to run the following steps.
 
 1. Build, smoke-test and scan the app image, then authenticate to AWS using OIDC.
-2. Push the app image to the memos ECR repository under a run-specific tag and latest. Build and push the setup image to the same repository under setup-latest.
-3. Start the one-off database setup task in the private subnets and wait for exit code 0. It prepares PostgreSQL, writes the app and website credentials to Secrets Manager, and applies the Memos configuration. A failed setup stops the release.
-4. Force a new ECS deployment. On the first deploy, start two tasks. Once stable, verify that the running tasks use the expected image digest and that the public /healthz endpoint responds. After the first successful rollout, set the autoscaling minimum to two.
+2. Push the app image to the memos ECR repository under a run-specific tag. Build the setup image and push it to the same repository under that tag with a -setup suffix. Tags in the repository are immutable.
+3. Register a revision of the setup task definition that names the setup image digest, start it in the private subnets and wait for exit code 0. It prepares PostgreSQL, writes the app and website credentials to Secrets Manager, and applies the Memos configuration. A failed setup stops the release.
+4. Register a revision of the app task definition that names the new image digest and update the ECS service to it. On the first deploy, start two tasks. Once stable, verify that the running tasks use the expected image digest and that the public /healthz endpoint responds. After the first successful rollout, set the autoscaling minimum to two.
 
-Manual Terraform runs and application deploys share a concurrency group. For an app redeploy, run **Application → deploy** again. The setup task reuses existing credentials, and the replacement tasks connect to the same PostgreSQL database.
+Manual Terraform runs and application deploys share a concurrency group. For an app redeploy, run **Application → deploy** again. The setup task reuses existing credentials, and the replacement tasks connect to the same PostgreSQL database. To roll back, update the ECS service to an earlier task definition revision, since each revision names the exact image digest it runs.
 
 ## Deploy a copy in your AWS account
 

@@ -4,6 +4,7 @@ set -euo pipefail
 image_tag="${1:?Image tag is required}"
 cluster=memos-cluster
 service=memos-service
+family=memos-task
 scaling_target=(
   --service-namespace ecs
   --scalable-dimension ecs:service:DesiredCount
@@ -13,6 +14,11 @@ expected_digest=$(aws ecr describe-images \
   --repository-name memos \
   --image-ids "imageTag=$image_tag" \
   --query 'imageDetails[0].imageDigest' --output text)
+
+repository_uri=$(aws ecr describe-repositories --repository-names memos \
+  --query 'repositories[0].repositoryUri' --output text)
+
+task_definition=$(bash scripts/register-task-definition.sh "$family" memos "$repository_uri@$expected_digest")
 
 minimum=$(aws application-autoscaling describe-scalable-targets \
   "${scaling_target[@]}" \
@@ -29,7 +35,7 @@ fi
 
 echo "Starting ECS rollout for $image_tag"
 aws ecs update-service --cluster "$cluster" --service "$service" \
-  --force-new-deployment "${capacity[@]}" >/dev/null
+  --task-definition "$task_definition" --force-new-deployment "${capacity[@]}" >/dev/null
 
 aws ecs wait services-stable --cluster "$cluster" --services "$service"
 
@@ -64,4 +70,5 @@ if [[ "$minimum" == 0 ]]; then
     --min-capacity 2
 fi
 
-# Start an ECS rollout, wait for it to stabilise, verify the running image digest and public /health, then set the autoscaling minimum to two tasks on the first successful deploy.
+# Register a task definition revision for the new image digest, start an ECS rollout, wait for it to stabilise,
+# verify the running image digest and public /healthz, then set the autoscaling minimum to two tasks on the first successful deploy.

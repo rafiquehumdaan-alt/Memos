@@ -4,6 +4,7 @@ set -euo pipefail
 cluster="${1:?ECS cluster name is required}"
 service="${2:?ECS service name is required}"
 family="${3:?Setup task family is required}"
+image_tag="${4:?Image tag is required}"
 
 network=$(aws ecs describe-services \
   --cluster "$cluster" \
@@ -15,6 +16,16 @@ if ! jq -e '.awsvpcConfiguration.subnets | length > 0' <<< "$network" >/dev/null
   echo "No ECS network configuration found. Run Terraform apply first." >&2
   exit 1
 fi
+
+repository_uri=$(aws ecr describe-repositories --repository-names memos \
+  --query 'repositories[0].repositoryUri' --output text)
+
+setup_digest=$(aws ecr describe-images \
+  --repository-name memos \
+  --image-ids "imageTag=$image_tag-setup" \
+  --query 'imageDetails[0].imageDigest' --output text)
+
+task_definition=$(bash scripts/register-task-definition.sh "$family" setup "$repository_uri@$setup_digest")
 
 task=$(aws ecs run-task \
   --cluster "$cluster" \

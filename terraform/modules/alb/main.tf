@@ -24,15 +24,13 @@ resource "aws_vpc_security_group_ingress_rule" "https" {
   ip_protocol       = "tcp"
 }
 
-resource "aws_vpc_security_group_egress_rule" "all" {
+resource "aws_vpc_security_group_egress_rule" "to_ecs" {
   security_group_id = aws_security_group.alb.id
   cidr_ipv4         = var.vpc_cidr
   from_port         = 5230
   to_port           = 5230
   ip_protocol       = "tcp"
 }
-
-# Allows application requests and health checks within the VPC on TCP 5230.
 
 resource "aws_lb" "main" {
   name               = "memos-alb"
@@ -70,8 +68,6 @@ resource "aws_lb_target_group" "ecs" {
   }
 }
 
-# Checks /health every 30s, allowing 5s to respond; 2 consecutive HTTP 200s = healthy, 3 consecutive failures = unhealthy.
-
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
   port              = 443
@@ -101,4 +97,3 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# Redirects all HTTP traffic to HTTPS.

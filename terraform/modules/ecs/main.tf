@@ -25,7 +25,7 @@ resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   ip_protocol = "tcp"
 }
 
-resource "aws_vpc_security_group_egress_rule" "ecs_all" {
+resource "aws_vpc_security_group_egress_rule" "ecs_https" {
   security_group_id = aws_security_group.ecs.id
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
@@ -51,7 +51,7 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = "memos"
-      image     = "${var.ecr_repository_url}:latest"
+      image     = "${var.ecr_repository_url}:bootstrap"
       essential = true
 
       environment = [
@@ -109,7 +109,7 @@ resource "aws_ecs_service" "app" {
   }
 
   lifecycle {
-    ignore_changes = [desired_count]
+    ignore_changes = [desired_count, task_definition]
   }
 }
 
@@ -169,7 +169,7 @@ resource "aws_ecs_task_definition" "setup" {
   container_definitions = jsonencode([
     {
       name      = "setup"
-      image     = "${var.ecr_repository_url}:setup-latest"
+      image     = "${var.ecr_repository_url}:bootstrap"
       essential = true
 
       environment = [

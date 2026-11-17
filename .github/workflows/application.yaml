@@ -102,7 +102,9 @@ jobs:
         run: bash scripts/push-image-to-ecr.sh "$LOCAL_IMAGE" "$REPOSITORY" "$IMAGE_TAG"
 
       - name: Run ECS database setup task
-        run: bash scripts/setup-database.sh memos-cluster memos-service memos-setup
+        env:
+          IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: bash scripts/setup-database.sh memos-cluster memos-service memos-setup "$IMAGE_TAG"
 
       - name: Roll out to ECS
         env:

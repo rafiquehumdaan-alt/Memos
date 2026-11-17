@@ -5,18 +5,18 @@ LOCAL_IMAGE="${1:?Local image tag is required}"
 ECR_REPOSITORY_URI="${2:?ECR repository URI is required}"
 IMAGE_TAG="${3:?Image tag is required}"
 
-for IMAGE_URI in "$ECR_REPOSITORY_URI:$IMAGE_TAG" "$ECR_REPOSITORY_URI:latest"; do
-  echo "Tagging Docker image as $IMAGE_URI..."
-  docker tag "$LOCAL_IMAGE" "$IMAGE_URI"
+APP_IMAGE_URI="$ECR_REPOSITORY_URI:$IMAGE_TAG"
+SETUP_IMAGE_URI="$ECR_REPOSITORY_URI:$IMAGE_TAG-setup"
 
-  echo "Pushing Docker image to ECR..."
-  docker push "$IMAGE_URI"
+echo "Tagging Docker image as $APP_IMAGE_URI..."
+docker tag "$LOCAL_IMAGE" "$APP_IMAGE_URI"
 
-  echo "Image pushed: $IMAGE_URI"
-done
+echo "Pushing Docker image to ECR..."
+docker push "$APP_IMAGE_URI"
+
+echo "Image pushed: $APP_IMAGE_URI"
 
 MEMOS_IMAGE=$(awk '/^FROM / { print $2; exit }' app/Dockerfile)
-SETUP_IMAGE_URI="$ECR_REPOSITORY_URI:setup-latest"
 
 docker build --platform linux/amd64 --provenance=false \
   --build-arg "MEMOS_IMAGE=$MEMOS_IMAGE" \
@@ -24,4 +24,4 @@ docker build --platform linux/amd64 --provenance=false \
 
 docker push "$SETUP_IMAGE_URI"
 
-# Tag the Docker image and push it to Amazon ECR.
+# Tag the app and setup images with the release tag and push them to Amazon ECR.
