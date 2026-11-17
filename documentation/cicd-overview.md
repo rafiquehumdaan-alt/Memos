@@ -21,7 +21,7 @@ Manual Terraform runs and application deploys share a concurrency group. For an 
 
 ## Deploy a copy in your AWS account
 
-1. Set your domain and DNS records in terraform/dns.tf. Update the public health URL in scripts/deploy-ecs.sh and set your account's role ARN in both workflows. Set your S3 bucket name and backend settings in terraform/bootstrap/main.tf and terraform/backend.tf. Check that bootstrap policy resources match the ECR, secret and state names. The stack defaults to London.
+1. Set your domain and DNS records in terraform/dns.tf. Update the public health URL in scripts/deploy-ecs.sh and set your account's role ARN in both workflows. Set your S3 bucket name and backend settings in terraform/bootstrap/main.tf and terraform/backend.tf. Check that bootstrap policy resources match the ECR, secret, log group, IAM role and state names. Changes to the deployment role policies only take effect after you apply bootstrap again. The stack defaults to London.
 2. Configure a Cloudflare API token scoped to DNS for your zone. In GitHub Actions, set CLOUDFLARE_API_TOKEN as a secret and CLOUDFLARE_ZONE_ID as a variable.
 3. Ensure your AWS account already has the GitHub OIDC provider. Use your repository's actual OIDC subject for main as the bootstrap input. Run the following using AWS credentials that can create the state bucket and deployment role. Terraform prompts for the subject on apply.
 
