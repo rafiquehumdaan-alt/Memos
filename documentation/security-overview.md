@@ -10,7 +10,7 @@ RDS is private and its storage is encrypted. The setup script verifies the datab
 
 | Role | Responsibility |
 | --- | --- |
-| GitHub Actions deployment role | Both workflows assume this role through OIDC. AWS checks the STS audience and the repo’s main branch subject before issuing temporary credentials. |
+| GitHub Actions deployment role | Both workflows assume this role through OIDC. AWS checks the STS audience and the repo’s main branch subject before issuing temporary credentials. Its permissions are split across two managed policies and limited to eu-west-2, the Memos resources where AWS supports resource scoping, and the two ECS task roles it can create and pass. |
 | ECS task execution role | Lets ECS pull images, deliver logs and retrieve the app database secret for injection as MEMOS_DSN. |
 | Setup task role | Lets the setup container read the RDS-managed admin secret and read or write the two Memos secrets. |
 

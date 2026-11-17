@@ -108,54 +108,68 @@ data "aws_iam_policy_document" "github_actions_permissions" {
   }
 
   statement {
-    sid       = "ECR"
-    actions   = ["ecr:*"]
+    sid = "ECR"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchDeleteImage",
+      "ecr:BatchGetImage",
+      "ecr:CompleteLayerUpload",
+      "ecr:CreateRepository",
+      "ecr:DeleteRepository",
+      "ecr:DescribeImages",
+      "ecr:DescribeRepositories",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:GetLifecyclePolicy",
+      "ecr:GetRepositoryPolicy",
+      "ecr:InitiateLayerUpload",
+      "ecr:ListImages",
+      "ecr:ListTagsForResource",
+      "ecr:PutImage",
+      "ecr:PutImageScanningConfiguration",
+      "ecr:PutImageTagMutability",
+      "ecr:TagResource",
+      "ecr:UntagResource",
+      "ecr:UploadLayerPart"
+    ]
     resources = ["arn:aws:ecr:eu-west-2:${data.aws_caller_identity.current.account_id}:repository/memos"]
   }
 
   statement {
-    sid       = "EC2Networking"
-    actions   = ["ec2:*"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid = "ECS"
+    sid = "DatabaseRead"
     actions = [
-      "ecs:*",
-      "application-autoscaling:*"
+      "rds:DescribeDBEngineVersions",
+      "rds:DescribeDBInstances",
+      "rds:DescribeDBSubnetGroups"
     ]
     resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = ["eu-west-2"]
+    }
   }
 
   statement {
-    sid       = "LoadBalancing"
-    actions   = ["elasticloadbalancing:*"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid       = "Certificates"
-    actions   = ["acm:*"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid       = "DNS"
-    actions   = ["route53:*"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid       = "CloudFront"
-    actions   = ["cloudfront:*"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid       = "Database"
-    actions   = ["rds:*"]
-    resources = ["*"]
+    sid = "DatabaseManage"
+    actions = [
+      "rds:AddTagsToResource",
+      "rds:CreateDBInstance",
+      "rds:CreateDBSubnetGroup",
+      "rds:DeleteDBInstance",
+      "rds:DeleteDBSubnetGroup",
+      "rds:ListTagsForResource",
+      "rds:ModifyDBInstance",
+      "rds:ModifyDBSubnetGroup",
+      "rds:RemoveTagsFromResource"
+    ]
+    resources = [
+      "arn:aws:rds:eu-west-2:${data.aws_caller_identity.current.account_id}:db:memos",
+      "arn:aws:rds:eu-west-2:${data.aws_caller_identity.current.account_id}:subgrp:memos",
+      "arn:aws:rds:eu-west-2:${data.aws_caller_identity.current.account_id}:pg:*",
+      "arn:aws:rds:eu-west-2:${data.aws_caller_identity.current.account_id}:og:*",
+      "arn:aws:rds:eu-west-2:${data.aws_caller_identity.current.account_id}:secgrp:*"
+    ]
   }
 
   statement {
@@ -206,31 +220,277 @@ data "aws_iam_policy_document" "github_actions_permissions" {
   }
 
   statement {
-    sid       = "Logging"
-    actions   = ["logs:*"]
+    sid       = "LogGroupRead"
+    actions   = ["logs:DescribeLogGroups"]
+    resources = ["arn:aws:logs:eu-west-2:${data.aws_caller_identity.current.account_id}:log-group:*"]
+  }
+
+  statement {
+    sid = "LogGroupManage"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:DeleteLogGroup",
+      "logs:DeleteRetentionPolicy",
+      "logs:ListTagsForResource",
+      "logs:ListTagsLogGroup",
+      "logs:PutRetentionPolicy",
+      "logs:TagLogGroup",
+      "logs:TagResource",
+      "logs:UntagLogGroup",
+      "logs:UntagResource"
+    ]
+    resources = [
+      "arn:aws:logs:eu-west-2:${data.aws_caller_identity.current.account_id}:log-group:/ecs/memos-task",
+      "arn:aws:logs:eu-west-2:${data.aws_caller_identity.current.account_id}:log-group:/ecs/memos-task:*"
+    ]
+  }
+
+  statement {
+    sid = "IAMRoles"
+    actions = [
+      "iam:CreateRole",
+      "iam:DeleteRole",
+      "iam:DeleteRolePolicy",
+      "iam:GetRole",
+      "iam:GetRolePolicy",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListInstanceProfilesForRole",
+      "iam:ListRolePolicies",
+      "iam:PutRolePolicy",
+      "iam:TagRole",
+      "iam:UntagRole",
+      "iam:UpdateAssumeRolePolicy"
+    ]
+    resources = [
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/memos-ecs-execution-role",
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/memos-setup"
+    ]
+  }
+
+  statement {
+    sid = "IAMExecutionPolicy"
+    actions = [
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy"
+    ]
+    resources = [
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/memos-ecs-execution-role",
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/memos-setup"
+    ]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "iam:PolicyARN"
+      values   = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
+    }
+  }
+
+  statement {
+    sid     = "PassTaskRoles"
+    actions = ["iam:PassRole"]
+    resources = [
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/memos-ecs-execution-role",
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/memos-setup"
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "github_actions_compute" {
+  statement {
+    sid = "EC2Networking"
+    actions = [
+      "ec2:AllocateAddress",
+      "ec2:AssociateRouteTable",
+      "ec2:AttachInternetGateway",
+      "ec2:AuthorizeSecurityGroupEgress",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:CreateInternetGateway",
+      "ec2:CreateNatGateway",
+      "ec2:CreateRoute",
+      "ec2:CreateRouteTable",
+      "ec2:CreateSecurityGroup",
+      "ec2:CreateSubnet",
+      "ec2:CreateTags",
+      "ec2:CreateVpc",
+      "ec2:DeleteInternetGateway",
+      "ec2:DeleteNatGateway",
+      "ec2:DeleteRoute",
+      "ec2:DeleteRouteTable",
+      "ec2:DeleteSecurityGroup",
+      "ec2:DeleteSubnet",
+      "ec2:DeleteTags",
+      "ec2:DeleteVpc",
+      "ec2:DescribeAccountAttributes",
+      "ec2:DescribeAddresses",
+      "ec2:DescribeAddressesAttribute",
+      "ec2:DescribeAvailabilityZones",
+      "ec2:DescribeInternetGateways",
+      "ec2:DescribeNatGateways",
+      "ec2:DescribeNetworkAcls",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DescribeRouteTables",
+      "ec2:DescribeSecurityGroupRules",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeTags",
+      "ec2:DescribeVpcAttribute",
+      "ec2:DescribeVpcs",
+      "ec2:DetachInternetGateway",
+      "ec2:DisassociateRouteTable",
+      "ec2:ModifySecurityGroupRules",
+      "ec2:ModifySubnetAttribute",
+      "ec2:ModifyVpcAttribute",
+      "ec2:ReleaseAddress",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:RevokeSecurityGroupIngress"
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = ["eu-west-2"]
+    }
+  }
+
+  statement {
+    sid = "ECSServices"
+    actions = [
+      "ecs:CreateCluster",
+      "ecs:CreateService",
+      "ecs:DeleteCluster",
+      "ecs:DeleteService",
+      "ecs:DescribeClusters",
+      "ecs:DescribeServices",
+      "ecs:DescribeTasks",
+      "ecs:ListTagsForResource",
+      "ecs:RunTask",
+      "ecs:StopTask",
+      "ecs:TagResource",
+      "ecs:UntagResource",
+      "ecs:UpdateCluster",
+      "ecs:UpdateService"
+    ]
+    resources = [
+      "arn:aws:ecs:eu-west-2:${data.aws_caller_identity.current.account_id}:cluster/memos-cluster",
+      "arn:aws:ecs:eu-west-2:${data.aws_caller_identity.current.account_id}:service/memos-cluster/memos-service",
+      "arn:aws:ecs:eu-west-2:${data.aws_caller_identity.current.account_id}:task/memos-cluster/*",
+      "arn:aws:ecs:eu-west-2:${data.aws_caller_identity.current.account_id}:task-definition/memos-task:*",
+      "arn:aws:ecs:eu-west-2:${data.aws_caller_identity.current.account_id}:task-definition/memos-setup:*"
+    ]
+  }
+
+  statement {
+    sid = "ECSAccountLevel"
+    actions = [
+      "ecs:DeleteTaskDefinitions",
+      "ecs:DeregisterTaskDefinition",
+      "ecs:DescribeTaskDefinition",
+      "ecs:ListServices",
+      "ecs:ListTaskDefinitions",
+      "ecs:ListTasks",
+      "ecs:RegisterTaskDefinition"
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = ["eu-west-2"]
+    }
+  }
+
+  statement {
+    sid = "Autoscaling"
+    actions = [
+      "application-autoscaling:DeleteScalingPolicy",
+      "application-autoscaling:DeregisterScalableTarget",
+      "application-autoscaling:DescribeScalableTargets",
+      "application-autoscaling:DescribeScalingActivities",
+      "application-autoscaling:DescribeScalingPolicies",
+      "application-autoscaling:ListTagsForResource",
+      "application-autoscaling:PutScalingPolicy",
+      "application-autoscaling:RegisterScalableTarget",
+      "application-autoscaling:TagResource",
+      "application-autoscaling:UntagResource"
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = ["eu-west-2"]
+    }
+  }
+
+  statement {
+    sid = "LoadBalancerRead"
+    actions = [
+      "elasticloadbalancing:DescribeListenerAttributes",
+      "elasticloadbalancing:DescribeListenerCertificates",
+      "elasticloadbalancing:DescribeListeners",
+      "elasticloadbalancing:DescribeLoadBalancerAttributes",
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "elasticloadbalancing:DescribeRules",
+      "elasticloadbalancing:DescribeSSLPolicies",
+      "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
+      "elasticloadbalancing:DescribeTargetGroups",
+      "elasticloadbalancing:DescribeTargetHealth"
+    ]
     resources = ["*"]
   }
 
   statement {
-    sid = "IAMForMemos"
+    sid = "LoadBalancerManage"
     actions = [
-      "iam:GetRole",
-      "iam:CreateRole",
-      "iam:DeleteRole",
-      "iam:UpdateAssumeRolePolicy",
-      "iam:TagRole",
-      "iam:UntagRole",
-      "iam:ListRolePolicies",
-      "iam:ListAttachedRolePolicies",
-      "iam:ListInstanceProfilesForRole",
-      "iam:GetRolePolicy",
-      "iam:PutRolePolicy",
-      "iam:DeleteRolePolicy",
-      "iam:AttachRolePolicy",
-      "iam:DetachRolePolicy",
-      "iam:PassRole"
+      "elasticloadbalancing:AddTags",
+      "elasticloadbalancing:CreateListener",
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:CreateTargetGroup",
+      "elasticloadbalancing:DeleteListener",
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:DeleteTargetGroup",
+      "elasticloadbalancing:ModifyListener",
+      "elasticloadbalancing:ModifyListenerAttributes",
+      "elasticloadbalancing:ModifyLoadBalancerAttributes",
+      "elasticloadbalancing:ModifyTargetGroup",
+      "elasticloadbalancing:ModifyTargetGroupAttributes",
+      "elasticloadbalancing:RemoveTags",
+      "elasticloadbalancing:SetSecurityGroups",
+      "elasticloadbalancing:SetSubnets"
+    ]
+    resources = [
+      "arn:aws:elasticloadbalancing:eu-west-2:${data.aws_caller_identity.current.account_id}:loadbalancer/app/memos-alb/*",
+      "arn:aws:elasticloadbalancing:eu-west-2:${data.aws_caller_identity.current.account_id}:listener/app/memos-alb/*",
+      "arn:aws:elasticloadbalancing:eu-west-2:${data.aws_caller_identity.current.account_id}:targetgroup/memos-tg-5230/*"
+    ]
+  }
+
+  statement {
+    sid = "Certificates"
+    actions = [
+      "acm:AddTagsToCertificate",
+      "acm:DeleteCertificate",
+      "acm:DescribeCertificate",
+      "acm:GetCertificate",
+      "acm:ListTagsForCertificate",
+      "acm:RemoveTagsFromCertificate",
+      "acm:RequestCertificate"
     ]
     resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = ["eu-west-2"]
+    }
   }
 }
 
@@ -245,7 +505,23 @@ resource "aws_iam_policy" "github_actions" {
   }
 }
 
+resource "aws_iam_policy" "github_actions_compute" {
+  name        = "memos-github-actions-compute-policy"
+  description = "Network, compute and load balancer permissions used by Memos GitHub Actions workflows"
+  policy      = data.aws_iam_policy_document.github_actions_compute.json
+
+  tags = {
+    Name    = "memos-github-actions-compute-policy"
+    Project = "Memos"
+  }
+}
+
 resource "aws_iam_role_policy_attachment" "github_actions" {
   role       = aws_iam_role.github_actions.name
   policy_arn = aws_iam_policy.github_actions.arn
+}
+
+resource "aws_iam_role_policy_attachment" "github_actions_compute" {
+  role       = aws_iam_role.github_actions.name
+  policy_arn = aws_iam_policy.github_actions_compute.arn
 }
