@@ -86,3 +86,11 @@ module "database" {
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
 }
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  alb_arn_suffix          = module.alb.alb_arn_suffix
+  target_group_arn_suffix = module.alb.target_group_arn_suffix
+  db_instance_identifier  = module.database.identifier
+}

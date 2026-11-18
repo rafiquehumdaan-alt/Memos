@@ -13,3 +13,7 @@ output "admin_secret_arn" {
 output "app_secret_arn" {
   value = aws_secretsmanager_secret.app.arn
 }
+
+output "identifier" {
+  value = aws_db_instance.memos.identifier
+}

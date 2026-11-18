@@ -144,6 +144,25 @@ resource "aws_appautoscaling_policy" "ecs_cpu" {
   }
 }
 
+resource "aws_appautoscaling_policy" "ecs_memory" {
+  name               = "memos-memory-autoscaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    target_value = 70.0
+
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
 resource "aws_vpc_security_group_egress_rule" "ecs_to_database" {
   security_group_id            = aws_security_group.ecs.id
   referenced_security_group_id = var.database_security_group_id

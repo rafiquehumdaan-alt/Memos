@@ -15,3 +15,7 @@ The RDS master password is managed by RDS and rotates automatically. The memos_a
 ## Make the security scans blocking
 
 Trivy and Checkov report findings but never fail the pipeline. I would review the current results, fix what is fixable and record the accepted findings with a reason, then switch Trivy to fail on critical and high findings with a fix available and remove soft_fail from Checkov. The upstream Memos image is pinned, so some findings may not be fixable until a new release, and those would go in an ignore file with a note rather than block every build.
+
+## Add alerting and log analysis
+
+The CloudWatch alarms only show in the console. I would send them to an SNS topic with email subscriptions so a problem reaches me without checking. I would also add ALB access logs and VPC flow logs to an S3 bucket with a lifecycle rule, to see individual requests and rejected traffic when investigating an incident.

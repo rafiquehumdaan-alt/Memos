@@ -245,6 +245,30 @@ data "aws_iam_policy_document" "github_actions_permissions" {
     ]
   }
 
+    statement {
+    sid       = "AlarmRead"
+    actions   = ["cloudwatch:DescribeAlarms"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = ["eu-west-2"]
+    }
+  }
+
+  statement {
+    sid = "AlarmManage"
+    actions = [
+      "cloudwatch:DeleteAlarms",
+      "cloudwatch:ListTagsForResource",
+      "cloudwatch:PutMetricAlarm",
+      "cloudwatch:TagResource",
+      "cloudwatch:UntagResource"
+    ]
+    resources = ["arn:aws:cloudwatch:eu-west-2:${data.aws_caller_identity.current.account_id}:alarm:memos-*"]
+  }
+
   statement {
     sid = "IAMRoles"
     actions = [
@@ -525,3 +549,4 @@ resource "aws_iam_role_policy_attachment" "github_actions_compute" {
   role       = aws_iam_role.github_actions.name
   policy_arn = aws_iam_policy.github_actions_compute.arn
 }
+
