@@ -30,7 +30,7 @@ task_definition=$(bash scripts/register-task-definition.sh "$family" setup "$rep
 task=$(aws ecs run-task \
   --cluster "$cluster" \
   --launch-type FARGATE \
-  --task-definition "$family" \
+  --task-definition "$task_definition" \
   --network-configuration "$network" \
   --output json |
   jq -er '.tasks[0].taskArn // error(.failures | tostring)')

@@ -245,7 +245,7 @@ data "aws_iam_policy_document" "github_actions_permissions" {
     ]
   }
 
-    statement {
+  statement {
     sid       = "AlarmRead"
     actions   = ["cloudwatch:DescribeAlarms"]
     resources = ["*"]
@@ -269,7 +269,7 @@ data "aws_iam_policy_document" "github_actions_permissions" {
     resources = ["arn:aws:cloudwatch:eu-west-2:${data.aws_caller_identity.current.account_id}:alarm:memos-*"]
   }
 
-    statement {
+  statement {
     sid = "VpcEndpoints"
     actions = [
       "ec2:CreateVpcEndpoint",
@@ -517,7 +517,7 @@ data "aws_iam_policy_document" "github_actions_compute" {
     ]
   }
 
-    statement {
+  statement {
     sid = "WebACL"
     actions = [
       "wafv2:AssociateWebACL",

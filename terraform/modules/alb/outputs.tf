@@ -24,3 +24,12 @@ output "alb_arn" {
   description = "ARN of the Memos Application Load Balancer"
   value       = aws_lb.main.arn
 }
+output "alb_arn_suffix" {
+  description = "ARN suffix of the load balancer, used for CloudWatch metrics"
+  value       = aws_lb.main.arn_suffix
+}
+
+output "target_group_arn_suffix" {
+  description = "ARN suffix of the target group, used for CloudWatch metrics"
+  value       = aws_lb_target_group.ecs.arn_suffix
+}
