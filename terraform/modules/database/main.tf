@@ -19,7 +19,7 @@ resource "aws_db_instance" "memos" {
   storage_encrypted           = true
   multi_az                    = true
   publicly_accessible         = false
-  backup_retention_period     = 7
+  backup_retention_period     = 1
   username                    = "memos_admin"
   manage_master_user_password = true
   db_subnet_group_name        = aws_db_subnet_group.memos.name
@@ -36,5 +36,6 @@ resource "aws_vpc_security_group_ingress_rule" "database_from_ecs" {
 }
 
 resource "aws_secretsmanager_secret" "app" {
-  name = "${var.name}/database"
+  name                    = "${var.name}/database"
+  recovery_window_in_days = 0
 }

@@ -172,7 +172,8 @@ resource "aws_vpc_security_group_egress_rule" "ecs_to_database" {
 }
 
 resource "aws_secretsmanager_secret" "website_admin" {
-  name = "memos/website-admin"
+  name                    = "memos/website-admin"
+  recovery_window_in_days = 0
 }
 
 resource "aws_ecs_task_definition" "setup" {
