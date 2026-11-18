@@ -552,6 +552,12 @@ data "aws_iam_policy_document" "github_actions_compute" {
   }
 
   statement {
+    sid       = "WebACLLookup"
+    actions   = ["wafv2:GetWebACLForResource"]
+    resources = ["arn:aws:wafv2:eu-west-2:${data.aws_caller_identity.current.account_id}:regional/webacl/*/*"]
+  }
+
+  statement {
     sid = "Certificates"
     actions = [
       "acm:AddTagsToCertificate",
