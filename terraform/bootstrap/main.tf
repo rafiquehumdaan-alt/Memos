@@ -269,6 +269,25 @@ data "aws_iam_policy_document" "github_actions_permissions" {
     resources = ["arn:aws:cloudwatch:eu-west-2:${data.aws_caller_identity.current.account_id}:alarm:memos-*"]
   }
 
+    statement {
+    sid = "VpcEndpoints"
+    actions = [
+      "ec2:CreateVpcEndpoint",
+      "ec2:DeleteVpcEndpoints",
+      "ec2:DescribePrefixLists",
+      "ec2:DescribeVpcEndpointServices",
+      "ec2:DescribeVpcEndpoints",
+      "ec2:ModifyVpcEndpoint"
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = ["eu-west-2"]
+    }
+  }
+
   statement {
     sid = "IAMRoles"
     actions = [
