@@ -385,6 +385,7 @@ data "aws_iam_policy_document" "github_actions_compute" {
       "ec2:DescribeVpcAttribute",
       "ec2:DescribeVpcs",
       "ec2:DetachInternetGateway",
+      "ec2:DisassociateAddress",
       "ec2:DisassociateRouteTable",
       "ec2:ModifySecurityGroupRules",
       "ec2:ModifySubnetAttribute",
