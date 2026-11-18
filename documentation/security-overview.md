@@ -6,6 +6,8 @@ The internet-facing ALB accepts HTTP and HTTPS. It redirects HTTP to HTTPS and t
 
 RDS is private and its storage is encrypted. The setup script verifies the database server's identity against the RDS CA when it tests the PostgreSQL logins. The connection string used by the Memos app requires TLS with sslmode=require.
 
+A regional AWS WAF web ACL is attached to the ALB. It uses the AWS managed IP reputation, known bad inputs and common rule groups, plus a rate limit that blocks any single IP sending more than 2,000 requests in five minutes. One rule in the common group, the request body size check, is set to count only so file attachments can be uploaded.
+
 ## IAM roles
 
 | Role | Responsibility |

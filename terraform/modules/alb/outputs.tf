@@ -19,3 +19,8 @@ output "alb_zone_id" {
   description = "Route 53 zone ID of the Memos Application Load Balancer"
   value       = aws_lb.main.zone_id
 }
+
+output "alb_arn" {
+  description = "ARN of the Memos Application Load Balancer"
+  value       = aws_lb.main.arn
+}

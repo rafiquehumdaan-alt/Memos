@@ -488,13 +488,47 @@ data "aws_iam_policy_document" "github_actions_compute" {
       "elasticloadbalancing:ModifyTargetGroupAttributes",
       "elasticloadbalancing:RemoveTags",
       "elasticloadbalancing:SetSecurityGroups",
-      "elasticloadbalancing:SetSubnets"
+      "elasticloadbalancing:SetSubnets",
+      "elasticloadbalancing:SetWebAcl"
     ]
     resources = [
       "arn:aws:elasticloadbalancing:eu-west-2:${data.aws_caller_identity.current.account_id}:loadbalancer/app/memos-alb/*",
       "arn:aws:elasticloadbalancing:eu-west-2:${data.aws_caller_identity.current.account_id}:listener/app/memos-alb/*",
       "arn:aws:elasticloadbalancing:eu-west-2:${data.aws_caller_identity.current.account_id}:targetgroup/memos-tg-5230/*"
     ]
+  }
+
+    statement {
+    sid = "WebACL"
+    actions = [
+      "wafv2:AssociateWebACL",
+      "wafv2:CreateWebACL",
+      "wafv2:DeleteWebACL",
+      "wafv2:DisassociateWebACL",
+      "wafv2:GetWebACL",
+      "wafv2:GetWebACLForResource",
+      "wafv2:ListTagsForResource",
+      "wafv2:TagResource",
+      "wafv2:UntagResource",
+      "wafv2:UpdateWebACL"
+    ]
+    resources = [
+      "arn:aws:wafv2:eu-west-2:${data.aws_caller_identity.current.account_id}:regional/webacl/memos-waf/*",
+      "arn:aws:wafv2:eu-west-2:*:regional/managedruleset/*/*",
+      "arn:aws:elasticloadbalancing:eu-west-2:${data.aws_caller_identity.current.account_id}:loadbalancer/app/memos-alb/*"
+    ]
+  }
+
+  statement {
+    sid       = "WebACLList"
+    actions   = ["wafv2:ListWebACLs"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = ["eu-west-2"]
+    }
   }
 
   statement {

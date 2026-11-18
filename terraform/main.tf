@@ -94,3 +94,9 @@ module "monitoring" {
   target_group_arn_suffix = module.alb.target_group_arn_suffix
   db_instance_identifier  = module.database.identifier
 }
+
+module "waf" {
+  source = "./modules/waf"
+
+  alb_arn = module.alb.alb_arn
+}
