@@ -18,7 +18,7 @@ Cloudflare resolves the hostname directly to an internet-facing Application Load
 
 [![Memos architecture on AWS](documentation/architecture/architecture-diagram-v6.png)](documentation/architecture/architecture-diagram-v6.png)
 
-[Editable draw.io diagram](documentation/architecture/architecture-diagram-V6.drawio)
+[Editable draw.io diagram](documentation/architecture/architecture-diagram-v6.drawio)
 
 ## How a release goes live
 
