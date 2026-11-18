@@ -28,4 +28,4 @@ Five CloudWatch alarms cover what autoscaling and ECS replacement cannot fix. Tw
 
 The application workflow waits for ECS to stabilise, requires at least two running tasks, compares their image digests with the release tag and checks the public /healthz endpoint. I also created a private note with an image, ran another deployment and confirmed both were still accessible after the tasks were replaced.
 
-See the [architecture diagram](architecture/architecture-diagram-v5.png), [networking](networking.md) and [deployment guide](cicd-overview.md).
+See the [architecture diagram](architecture/architecture-diagram-v6.png), [networking](networking.md) and [deployment guide](cicd-overview.md).

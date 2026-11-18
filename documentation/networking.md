@@ -21,4 +21,4 @@ The RDS subnet group includes both private subnets. The PostgreSQL instance is M
 
 The private subnets reach AWS services through VPC endpoints. Interface endpoints for ECR (API and Docker), CloudWatch Logs and Secrets Manager sit in both private subnets with private DNS, so image pulls, log delivery and secret lookups stay on the AWS network. A gateway endpoint for S3 is attached to both private route tables, because ECR serves image layers from S3. Each private subnet also keeps a route to the NAT gateway in its own Availability Zone. I kept NAT for anything the endpoints do not cover, such as outbound calls to services outside AWS if Memos needs them, AWS services that do not have an endpoint yet, and a fixed outbound address. Two NAT gateways cost more than one, but each private subnet has its own outbound path. PostgreSQL traffic stays within the VPC.
 
-[View the AWS architecture diagram](architecture/architecture-diagram-v5.png)
+[View the AWS architecture diagram](architecture/architecture-diagram-v6.png)
